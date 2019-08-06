@@ -7,9 +7,11 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:firebase_ml_vision/firebase_ml_vision.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/painting.dart';
+import 'package:random_color/random_color.dart';
 
 import 'detector_painters.dart';
 
@@ -113,15 +115,14 @@ class _PictureScannerState extends State<PictureScanner> {
     }
     VisionText _currentLabels;
     _currentLabels = results;
-    for (var text in _currentLabels.
-    blocks) {
+    _currentLabels.blocks.asMap();
+//    _currentLabels.blocks.asMap().map((key,value)=>value.boundingBox);
+    for (var text in _currentLabels.blocks) {
       print("text : ${text.text}");
     }
     setState(() {
       _scanResults = results;
     });
-    print(_currentLabels);
-
   }
 
   CustomPaint _buildResults(Size imageSize, dynamic results) {
@@ -155,12 +156,13 @@ class _PictureScannerState extends State<PictureScanner> {
   }
 
   Widget _buildImage() {
-    return Container(
+    return MultiTapRecognize(
+        child: Container(
       constraints: const BoxConstraints.expand(),
       decoration: BoxDecoration(
         image: DecorationImage(
           image: Image.file(_imageFile).image,
-          fit: BoxFit.fill,
+          fit: BoxFit.contain,
         ),
       ),
       child: _imageSize == null || _scanResults == null
@@ -174,7 +176,7 @@ class _PictureScannerState extends State<PictureScanner> {
               ),
             )
           : _buildResults(_imageSize, _scanResults),
-    );
+    ));
   }
 
   @override
@@ -239,3 +241,222 @@ class _PictureScannerState extends State<PictureScanner> {
     super.dispose();
   }
 }
+
+class MultiTapRecognize extends StatefulWidget {
+  MultiTapRecognize({Key key, @required this.child}) : super(key: key);
+
+  final Widget child;
+
+  @override
+  _MultiTapRecognizeState createState() {
+    return _MultiTapRecognizeState();
+  }
+}
+
+class _MultiTapRecognizeState extends State<MultiTapRecognize> {
+  final DelayedMultiDragGestureRecognizer dragGesture =
+      new DelayedMultiDragGestureRecognizer();
+  Map<int, MovableSelectionItem> movableSelections = {};
+
+  @override
+  Widget build(BuildContext context) {
+    return RawGestureDetector(
+        gestures: <Type, GestureRecognizerFactory>{
+          MultiTapGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<MultiTapGestureRecognizer>(
+                  () => MultiTapGestureRecognizer(
+                      longTapDelay: Duration(seconds: 1)),
+                  (MultiTapGestureRecognizer instance) {
+            instance
+              ..onTapDown = (int pointer, TapDownDetails details) {
+                print('trigger $pointer tap down');
+                dragGesture.acceptGesture(pointer);
+              }
+              ..onTapUp = (int pointer, TapUpDetails details) {
+                print('trigger $pointer tap up');
+              }
+              ..onLongTapDown = (int pointer, TapDownDetails details) {
+                print('trigger $pointer Long tap Down');
+                setState(() {
+                  movableSelections[pointer] =
+                      MovableSelectionItem(start: details.globalPosition);
+                });
+              }
+              ..onTapCancel = (int pointer) {
+                print('trigger $pointer Long tap Cancel');
+              };
+          }),
+          DelayedMultiDragGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<
+                  DelayedMultiDragGestureRecognizer>(
+            () => DelayedMultiDragGestureRecognizer(),
+            (DelayedMultiDragGestureRecognizer instance) {
+              instance
+                ..onStart = (Offset pointer) {
+                  print('trigger ${pointer.toString()} start draggin');
+                  final GestureDragUpdateCallback onUpdate =
+                      (DragUpdateDetails details) {
+                    print('Drag update $details');
+                    setState(() {
+                      movableSelections;
+                    });
+                  };
+
+                  final GestureDragEndCallback endDrag =
+                      (DragEndDetails details) => print('Drag End $details');
+
+                  return new ItemDrag(onUpdate, endDrag);
+                };
+            },
+          )
+        },
+        child: Stack(
+          children: <Widget>[
+            ...movableSelections.values.toList(),
+            widget.child,
+            MovableSelectionItem(start: Offset(300, 200))
+          ],
+        ));
+  }
+
+  void _onLongPressDragUpdate(details, BuildContext context) {
+    var localTouchPosition = (context.findRenderObject() as RenderBox)
+        .globalToLocal(details.globalPosition);
+    print(
+        '_onLongPressDragUpdate details: ${details.globalPosition} - localTouchPosition: $localTouchPosition');
+  }
+}
+
+class MovableSelectionItem extends StatefulWidget {
+  final Offset start;
+  final Offset changes;
+
+  MovableSelectionItem({Key key, @required this.start, this.changes})
+      : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() => _MovableSelectionState();
+}
+
+class _MovableSelectionState extends State<MovableSelectionItem> {
+  double xPosition = 500;
+  double yPosition = 500;
+  Color color;
+
+  @override
+  void initState() {
+    color = RandomColor().randomColor();
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: yPosition,
+      left: xPosition,
+      child: Container(
+        width: 150,
+        height: 150,
+        color: color,
+      ),
+    );
+  }
+}
+
+class ItemDrag extends Drag {
+  final GestureDragUpdateCallback onUpdate;
+  final GestureDragEndCallback onEnd;
+
+  ItemDrag(this.onUpdate, this.onEnd);
+
+  @override
+  void update(DragUpdateDetails details) {
+    super.update(details);
+    print(details);
+    onUpdate(details);
+  }
+
+  @override
+  void end(DragEndDetails details) {
+    super.end(details);
+    onEnd(details);
+  }
+}
+
+class SelectionSection extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() => _SelectionSectionState();
+}
+
+class _SelectionSectionState extends State<SelectionSection> {
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+        left: 400,
+        top: 400,
+        child: RaisedButton(
+          onPressed: () {},
+          child: const Text('Enabled Button', style: TextStyle(fontSize: 20)),
+        ));
+  }
+}
+
+class _ImmediatePointerState extends MultiDragPointerState {
+  _ImmediatePointerState(Offset initialPosition) : super(initialPosition);
+
+  @override
+  void checkForResolutionAfterMove() {
+    assert(pendingDelta != null);
+    if (pendingDelta.distance > kTouchSlop)
+      resolve(GestureDisposition.accepted);
+  }
+
+  @override
+  void accepted(GestureMultiDragStartCallback starter) {
+    starter(initialPosition);
+  }
+}
+/*gestures: <Type, GestureRecognizerFactory>{
+  MultiTapRecognizer:
+  GestureRecognizerFactoryWithHandlers<MultiTapRecognizer>(
+  () => MultiTapRecognizer(
+  onPanDown: _onPanDown,
+  onPanUpdate: _onPanUpdate,
+  onPanEnd: _onPanEnd),
+  (MultiTapRecognizer instance) {},
+  ),
+  },*/
+
+/*
+class MultiTapRecognizer extends MultiTapGestureRecognizer {
+
+  MultiTapRecognizer(
+);
+
+  @override
+  void addPointer(PointerEvent event) {
+    if (this.onTapDown) {
+      startTrackingPointer(event.pointer);
+      resolve(GestureDisposition.accepted);
+    } else {
+      stopTrackingPointer(event.pointer);
+    }
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    if (event is PointerMoveEvent) {
+      onPanUpdate(event.position);
+    }
+    if (event is PointerUpEvent) {
+      onPanEnd(event.position);
+      stopTrackingPointer(event.pointer);
+    }
+  }
+
+  @override
+  String get debugDescription => 'customPan';
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {}
+}*/

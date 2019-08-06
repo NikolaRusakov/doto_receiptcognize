@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'package:doto_receiptcognize/lib/multi_touch_gesture_recognizer.dart';
+import 'package:doto_receiptcognize/multi_button.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'package:doto_receiptcognize/lib/camera_preview_scanner.dart';
@@ -9,6 +12,8 @@ import 'package:doto_receiptcognize/lib/material_barcode_scanner.dart';
 import 'package:doto_receiptcognize/lib/picture_scanner.dart';
 
 void main() {
+//  debugPrintGestureArenaDiagnostics = true;
+  debugPrintGestureArenaDiagnostics = true;
   runApp(
     MaterialApp(
       routes: <String, WidgetBuilder>{
