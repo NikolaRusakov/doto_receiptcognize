@@ -30,6 +30,8 @@ dependencies:
   camera: ^0.5.2+1
   image_picker: ^0.5.0
   firebase_core: ^0.4.0
+  random_color: ^1.0.3
+
 #    path:
 
 dev_dependencies:
