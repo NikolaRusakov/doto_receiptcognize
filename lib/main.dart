@@ -1,15 +1,12 @@
-// Copyright 2018 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
-import 'package:doto_receiptcognize/lib/multi_touch_gesture_recognizer.dart';
-import 'package:doto_receiptcognize/multi_button.dart';
-import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
-
 import 'package:doto_receiptcognize/lib/camera_preview_scanner.dart';
 import 'package:doto_receiptcognize/lib/material_barcode_scanner.dart';
 import 'package:doto_receiptcognize/lib/picture_scanner.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+
+AppBar appBar = AppBar(
+  title: Text('Receiptgocnizer'),
+);
 
 void main() {
 //  debugPrintGestureArenaDiagnostics = true;
@@ -42,26 +39,76 @@ class _ExampleListState extends State<_ExampleList> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Example List'),
-      ),
-      body: ListView.builder(
-        itemCount: _exampleWidgetNames.length,
-        itemBuilder: (BuildContext context, int index) {
-          final String widgetName = _exampleWidgetNames[index];
+    return WrapperWidget(
+      child: Scaffold(
+        appBar: appBar,
+        body: ListView.builder(
+          itemCount: _exampleWidgetNames.length,
+          itemBuilder: (BuildContext context, int index) {
+            final String widgetName = _exampleWidgetNames[index];
 
-          return Container(
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey)),
-            ),
-            child: ListTile(
-              title: Text(widgetName),
-              onTap: () => Navigator.pushNamed(context, '/$widgetName'),
-            ),
-          );
-        },
+            return Container(
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.grey)),
+              ),
+              child: ListTile(
+                title: Text(widgetName),
+                onTap: () => Navigator.pushNamed(context, '/$widgetName'),
+              ),
+            );
+          },
+        ),
       ),
+    );
+  }
+}
+
+class EntryWidget extends InheritedWidget {
+  EntryWidget({
+    Key key,
+    @required Widget child,
+    @required this.data,
+  }) : super(key: key, child: child);
+
+  final WrapperWidgetState data;
+
+  get widget {
+    return child;
+  }
+
+  @override
+  bool updateShouldNotify(EntryWidget oldWidget) {
+    return true;
+  }
+}
+
+class WrapperWidget extends StatefulWidget {
+  WrapperWidget({
+    Key key,
+    @required this.child,
+  }) : super(key: key);
+
+  final Widget child;
+
+  @override
+  WrapperWidgetState createState() => new WrapperWidgetState();
+
+  static Size ofAppBar(BuildContext context) {
+    return appBar.preferredSize;
+  }
+
+  static WrapperWidgetState of(BuildContext context) {
+    return (context.inheritFromWidgetOfExactType(EntryWidget) as EntryWidget)
+        .data;
+  }
+}
+
+class WrapperWidgetState extends State<WrapperWidget> {
+  @override
+  Widget build(BuildContext context) {
+    return new EntryWidget(
+      child: widget.child,
+      data: this,
     );
   }
 }
