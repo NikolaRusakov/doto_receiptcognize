@@ -1,17 +1,13 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:doto_receiptcognize/main.dart';
 import 'package:firebase_ml_vision/firebase_ml_vision.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:flutter/painting.dart';
-import 'package:random_color/random_color.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'detector_painters.dart';
 
@@ -58,12 +54,12 @@ class _PictureScannerState extends State<PictureScanner> {
     final Completer<Size> completer = Completer<Size>();
 
     final Image image = Image.file(imageFile);
-    ImageListener imageListener = (ImageInfo info, syncCall) {
-      completer.complete(Size(
-        info.image.width.toDouble(),
-        info.image.height.toDouble(),
-      ));
-    };
+//    ImageListener imageListener = (ImageInfo info, syncCall) {
+//      completer.complete(Size(
+//        info.image.width.toDouble(),
+//        info.image.height.toDouble(),
+//      ));
+//    };
 //    ImageStreamListener listenerStream = new ImageStreamListener(imageListener);
 //    stream.addListener(ImageStreamListener(imageListener));
 //    stream.removeListener(ImageStreamListener(imageListener));
@@ -116,7 +112,6 @@ class _PictureScannerState extends State<PictureScanner> {
     VisionText _currentLabels;
     _currentLabels = results;
     _currentLabels.blocks.asMap();
-//    _currentLabels.blocks.asMap().map((key,value)=>value.boundingBox);
     for (var text in _currentLabels.blocks) {
       print("text : ${text.text}");
     }
@@ -181,51 +176,53 @@ class _PictureScannerState extends State<PictureScanner> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Picture Scanner'),
-        actions: <Widget>[
-          PopupMenuButton<Detector>(
-            onSelected: (Detector result) {
-              _currentDetector = result;
-              if (_imageFile != null) _scanImage(_imageFile);
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<Detector>>[
-                  const PopupMenuItem<Detector>(
-                    child: Text('Detect Barcode'),
-                    value: Detector.barcode,
-                  ),
-                  const PopupMenuItem<Detector>(
-                    child: Text('Detect Face'),
-                    value: Detector.face,
-                  ),
-                  const PopupMenuItem<Detector>(
-                    child: Text('Detect Label'),
-                    value: Detector.label,
-                  ),
-                  const PopupMenuItem<Detector>(
-                    child: Text('Detect Cloud Label'),
-                    value: Detector.cloudLabel,
-                  ),
-                  const PopupMenuItem<Detector>(
-                    child: Text('Detect Text'),
-                    value: Detector.text,
-                  ),
-                  const PopupMenuItem<Detector>(
-                    child: Text('Detect Cloud Text'),
-                    value: Detector.cloudText,
-                  ),
-                ],
-          ),
-        ],
-      ),
-      body: _imageFile == null
-          ? const Center(child: Text('No image selected.'))
-          : _buildImage(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _getAndScanImage,
-        tooltip: 'Pick Image',
-        child: const Icon(Icons.add_a_photo),
+    return WrapperWidget(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Picture Scanner'),
+          actions: <Widget>[
+            PopupMenuButton<Detector>(
+              onSelected: (Detector result) {
+                _currentDetector = result;
+                if (_imageFile != null) _scanImage(_imageFile);
+              },
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<Detector>>[
+                    const PopupMenuItem<Detector>(
+                      child: Text('Detect Barcode'),
+                      value: Detector.barcode,
+                    ),
+                    const PopupMenuItem<Detector>(
+                      child: Text('Detect Face'),
+                      value: Detector.face,
+                    ),
+                    const PopupMenuItem<Detector>(
+                      child: Text('Detect Label'),
+                      value: Detector.label,
+                    ),
+                    const PopupMenuItem<Detector>(
+                      child: Text('Detect Cloud Label'),
+                      value: Detector.cloudLabel,
+                    ),
+                    const PopupMenuItem<Detector>(
+                      child: Text('Detect Text'),
+                      value: Detector.text,
+                    ),
+                    const PopupMenuItem<Detector>(
+                      child: Text('Detect Cloud Text'),
+                      value: Detector.cloudText,
+                    ),
+                  ],
+            ),
+          ],
+        ),
+        body: _imageFile == null
+            ? const Center(child: Text('No image selected.'))
+            : _buildImage(),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _getAndScanImage,
+          tooltip: 'Pick Image',
+          child: const Icon(Icons.add_a_photo),
+        ),
       ),
     );
   }
@@ -256,10 +253,13 @@ class MultiTapRecognize extends StatefulWidget {
 class _MultiTapRecognizeState extends State<MultiTapRecognize> {
   final DelayedMultiDragGestureRecognizer dragGesture =
       new DelayedMultiDragGestureRecognizer();
-  Map<int, MovableSelectionItem> movableSelections = {};
+  Map<int, Offset> movableSelections = {};
 
   @override
   Widget build(BuildContext context) {
+    final MediaQueryData queryData = MediaQuery.of(context);
+    Scaffold child = getChild<Scaffold>(context);
+    var appBarHeight = child.appBar.preferredSize.height;
     return RawGestureDetector(
         gestures: <Type, GestureRecognizerFactory>{
           MultiTapGestureRecognizer:
@@ -271,16 +271,15 @@ class _MultiTapRecognizeState extends State<MultiTapRecognize> {
               ..onTapDown = (int pointer, TapDownDetails details) {
                 print('trigger $pointer tap down');
                 dragGesture.acceptGesture(pointer);
+                setState(() {
+                  movableSelections[pointer] = details.globalPosition;
+                });
               }
               ..onTapUp = (int pointer, TapUpDetails details) {
                 print('trigger $pointer tap up');
               }
               ..onLongTapDown = (int pointer, TapDownDetails details) {
-                print('trigger $pointer Long tap Down');
-                setState(() {
-                  movableSelections[pointer] =
-                      MovableSelectionItem(start: details.globalPosition);
-                });
+                print('trigger $pointer $details Long tap Down');
               }
               ..onTapCancel = (int pointer) {
                 print('trigger $pointer Long tap Cancel');
@@ -295,15 +294,13 @@ class _MultiTapRecognizeState extends State<MultiTapRecognize> {
                 ..onStart = (Offset pointer) {
                   print('trigger ${pointer.toString()} start draggin');
                   final GestureDragUpdateCallback onUpdate =
-                      (DragUpdateDetails details) {
-                    print('Drag update $details');
-                    setState(() {
-                      movableSelections;
-                    });
-                  };
+                      (DragUpdateDetails details) {};
 
                   final GestureDragEndCallback endDrag =
-                      (DragEndDetails details) => print('Drag End $details');
+                      (DragEndDetails details) {
+                    print('Drag End $details $pointer');
+                    print(movableSelections[pointer]);
+                  };
 
                   return new ItemDrag(onUpdate, endDrag);
                 };
@@ -312,54 +309,94 @@ class _MultiTapRecognizeState extends State<MultiTapRecognize> {
         },
         child: Stack(
           children: <Widget>[
-            ...movableSelections.values.toList(),
             widget.child,
-            MovableSelectionItem(start: Offset(300, 200))
+            FittedBox(
+                child: SizedBox(
+                    width: queryData.size.width,
+                    height: queryData.size.height - appBarHeight,
+                    child: new Listener(
+                        onPointerMove: (PointerMoveEvent event) {
+                          setState(() {
+                            movableSelections[event.pointer] =
+                                transfromWithoutAppBar(
+                                    event.position, appBarHeight);
+                          });
+                        },
+                        onPointerUp: (PointerUpEvent event) {
+                          setState(() {
+                            movableSelections.remove(event.pointer);
+                          });
+                        },
+                        child: new CustomPaint(
+                          isComplex: true,
+                          painter: ConstraintPainter(
+                              points: movableSelections,
+                              queryData: queryData,
+                              context: context),
+                          willChange: true,
+                        ))))
           ],
         ));
   }
-
-  void _onLongPressDragUpdate(details, BuildContext context) {
-    var localTouchPosition = (context.findRenderObject() as RenderBox)
-        .globalToLocal(details.globalPosition);
-    print(
-        '_onLongPressDragUpdate details: ${details.globalPosition} - localTouchPosition: $localTouchPosition');
-  }
 }
 
-class MovableSelectionItem extends StatefulWidget {
-  final Offset start;
-  final Offset changes;
+class DrawingPoints {
+  Paint paint;
+  Offset points;
 
-  MovableSelectionItem({Key key, @required this.start, this.changes})
-      : super(key: key);
-
-  @override
-  State<StatefulWidget> createState() => _MovableSelectionState();
+  DrawingPoints({this.points, this.paint});
 }
 
-class _MovableSelectionState extends State<MovableSelectionItem> {
-  double xPosition = 500;
-  double yPosition = 500;
-  Color color;
+class ConstraintPainter extends CustomPainter {
+  ConstraintPainter({this.points, this.queryData, this.context});
+
+  final MediaQueryData queryData;
+
+  Map<int, Offset> points;
+
+  BuildContext context;
+
+  final linePainter = Paint()
+    ..color = Colors.red
+    ..strokeWidth = 2
+    ..strokeCap = StrokeCap.butt;
+
+  final rectPainter = Paint()
+    ..color = Colors.amberAccent
+    ..strokeWidth = 3
+    ..strokeCap = StrokeCap.square;
 
   @override
-  void initState() {
-    color = RandomColor().randomColor();
-    super.initState();
+  void paint(Canvas canvas, Size size) {
+    for (Offset point in points.values.toList()) {
+      canvas.drawLine(Offset(0, point.dy),
+          Offset(queryData.size.width * 2, point.dy), linePainter);
+      canvas.drawCircle(Offset(point.dx, point.dy), 20, linePainter);
+    }
+    if (points.values.toList().length == 2) {
+      for (var i = 0; i <= points.values.toList().length - 1; i++) {
+        drawRects(i, points.values.toList(), canvas);
+      }
+    }
+  }
+
+  drawRects(int pos, List<Offset> points, canvas) {
+    print({pos, points});
+
+    pos > 0
+        ? canvas.drawRect(
+            Rect.fromPoints(Offset(points[pos - 1].dx, points[pos - 1].dy),
+                Offset(queryData.size.width * 2, points[pos].dy)),
+            rectPainter)
+        : canvas.drawRect(
+            Rect.fromPoints(Offset(0, points[pos].dy),
+                Offset(points[pos + 1].dx, points[pos + 1].dy)),
+            linePainter);
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      top: yPosition,
-      left: xPosition,
-      child: Container(
-        width: 150,
-        height: 150,
-        color: color,
-      ),
-    );
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    return true;
   }
 }
 
@@ -383,80 +420,19 @@ class ItemDrag extends Drag {
   }
 }
 
-class SelectionSection extends StatefulWidget {
-  @override
-  State<StatefulWidget> createState() => _SelectionSectionState();
-}
+getChild<C>(BuildContext context) =>
+    WrapperWidget.of(context).widget.child as C;
 
-class _SelectionSectionState extends State<SelectionSection> {
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-        left: 400,
-        top: 400,
-        child: RaisedButton(
-          onPressed: () {},
-          child: const Text('Enabled Button', style: TextStyle(fontSize: 20)),
-        ));
-  }
-}
-
-class _ImmediatePointerState extends MultiDragPointerState {
-  _ImmediatePointerState(Offset initialPosition) : super(initialPosition);
-
-  @override
-  void checkForResolutionAfterMove() {
-    assert(pendingDelta != null);
-    if (pendingDelta.distance > kTouchSlop)
-      resolve(GestureDisposition.accepted);
-  }
-
-  @override
-  void accepted(GestureMultiDragStartCallback starter) {
-    starter(initialPosition);
-  }
-}
-/*gestures: <Type, GestureRecognizerFactory>{
-  MultiTapRecognizer:
-  GestureRecognizerFactoryWithHandlers<MultiTapRecognizer>(
-  () => MultiTapRecognizer(
-  onPanDown: _onPanDown,
-  onPanUpdate: _onPanUpdate,
-  onPanEnd: _onPanEnd),
-  (MultiTapRecognizer instance) {},
-  ),
-  },*/
-
-/*
-class MultiTapRecognizer extends MultiTapGestureRecognizer {
-
-  MultiTapRecognizer(
-);
-
-  @override
-  void addPointer(PointerEvent event) {
-    if (this.onTapDown) {
-      startTrackingPointer(event.pointer);
-      resolve(GestureDisposition.accepted);
-    } else {
-      stopTrackingPointer(event.pointer);
-    }
-  }
-
-  @override
-  void handleEvent(PointerEvent event) {
-    if (event is PointerMoveEvent) {
-      onPanUpdate(event.position);
-    }
-    if (event is PointerUpEvent) {
-      onPanEnd(event.position);
-      stopTrackingPointer(event.pointer);
-    }
-  }
-
-  @override
-  String get debugDescription => 'customPan';
-
-  @override
-  void didStopTrackingLastPointer(int pointer) {}
-}*/
+Offset transfromWithoutAppBar(Offset offset, double appBarOffset) =>
+    Offset(offset.dx, offset.dy - appBarOffset);
+//abstract class StateWithRef<U> {
+//  U of<U>(BuildContext context);
+//}
+//
+//abstract class InheritedWithRef<U> {
+//  U data;
+//}
+//State getAppBarHeight<T extends StatefulWidget, U extends State<T>,
+//            I extends InheritedWithRef<U>, Inf>(StateWithRef<T, U> state,
+//    BuildContext context) =>
+//    state.of<I>(context).data;
