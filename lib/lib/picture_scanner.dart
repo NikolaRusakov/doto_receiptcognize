@@ -7,8 +7,11 @@ import 'package:firebase_ml_vision/firebase_ml_vision.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'bloc/bloc/bloc.dart';
+import 'bloc/bloc/detected_text_bloc.dart';
 import 'detector_painters.dart';
 
 class PictureScanner extends StatefulWidget {
@@ -30,6 +33,14 @@ class _PictureScannerState extends State<PictureScanner> {
   final TextRecognizer _recognizer = FirebaseVision.instance.textRecognizer();
   final TextRecognizer _cloudRecognizer =
       FirebaseVision.instance.cloudTextRecognizer();
+
+  DetectedTextBloc _detectedTextBloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _detectedTextBloc = BlocProvider.of<DetectedTextBloc>(context);
+  }
 
   Future<void> _getAndScanImage() async {
     setState(() {
@@ -109,14 +120,15 @@ class _PictureScannerState extends State<PictureScanner> {
       default:
         return;
     }
-    VisionText _currentLabels;
-    _currentLabels = results;
-    _currentLabels.blocks.asMap();
-    for (var text in _currentLabels.blocks) {
+    VisionText _currentText;
+    _currentText = results;
+    print(_currentText.blocks.asMap());
+    for (var text in _currentText.blocks) {
       print("text : ${text.text}");
     }
     setState(() {
       _scanResults = results;
+      _detectedTextBloc.dispatch(SaveDetectedText(text: _currentText));
     });
   }
 
@@ -150,28 +162,33 @@ class _PictureScannerState extends State<PictureScanner> {
     );
   }
 
-  Widget _buildImage() {
+  Widget _buildImage({size: Size}) {
     return MultiTapRecognize(
+        size: size,
         child: Container(
-      constraints: const BoxConstraints.expand(),
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: Image.file(_imageFile).image,
-          fit: BoxFit.contain,
-        ),
-      ),
-      child: _imageSize == null || _scanResults == null
-          ? const Center(
-              child: Text(
-                'Scanning...',
-                style: TextStyle(
-                  color: Colors.green,
-                  fontSize: 30.0,
-                ),
-              ),
-            )
-          : _buildResults(_imageSize, _scanResults),
-    ));
+          constraints: const BoxConstraints.expand(),
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: Image.file(
+                _imageFile,
+                gaplessPlayback: true,
+                filterQuality: FilterQuality.high,
+              ).image,
+              fit: BoxFit.fitHeight,
+            ),
+          ),
+          child: _imageSize == null || _scanResults == null
+              ? const Center(
+                  child: Text(
+                    'Scanning...',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 30.0,
+                    ),
+                  ),
+                )
+              : _buildResults(_imageSize, _scanResults),
+        ));
   }
 
   @override
@@ -217,7 +234,7 @@ class _PictureScannerState extends State<PictureScanner> {
         ),
         body: _imageFile == null
             ? const Center(child: Text('No image selected.'))
-            : _buildImage(),
+            : _buildImage(size: _imageSize),
         floatingActionButton: FloatingActionButton(
           onPressed: _getAndScanImage,
           tooltip: 'Pick Image',
@@ -240,9 +257,11 @@ class _PictureScannerState extends State<PictureScanner> {
 }
 
 class MultiTapRecognize extends StatefulWidget {
-  MultiTapRecognize({Key key, @required this.child}) : super(key: key);
+  MultiTapRecognize({Key key, @required this.child, @required this.size})
+      : super(key: key);
 
   final Widget child;
+  final Size size;
 
   @override
   _MultiTapRecognizeState createState() {
@@ -251,15 +270,27 @@ class MultiTapRecognize extends StatefulWidget {
 }
 
 class _MultiTapRecognizeState extends State<MultiTapRecognize> {
+  DetectedTextBloc _detectedTextBloc;
+
   final DelayedMultiDragGestureRecognizer dragGesture =
       new DelayedMultiDragGestureRecognizer();
   Map<int, Offset> movableSelections = {};
+  Map<int, Rect> rectSelections = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _detectedTextBloc = BlocProvider.of<DetectedTextBloc>(context);
+  }
 
   @override
   Widget build(BuildContext context) {
+    DetectedTextBloc _detectedTextBloc;
     final MediaQueryData queryData = MediaQuery.of(context);
+
     Scaffold child = getChild<Scaffold>(context);
     var appBarHeight = child.appBar.preferredSize.height;
+
     return RawGestureDetector(
         gestures: <Type, GestureRecognizerFactory>{
           MultiTapGestureRecognizer:
@@ -272,7 +303,8 @@ class _MultiTapRecognizeState extends State<MultiTapRecognize> {
                 print('trigger $pointer tap down');
                 dragGesture.acceptGesture(pointer);
                 setState(() {
-                  movableSelections[pointer] = details.globalPosition;
+                  movableSelections[pointer] = transformWithoutAppBar(
+                      details.globalPosition, appBarHeight);
                 });
               }
               ..onTapUp = (int pointer, TapUpDetails details) {
@@ -310,31 +342,43 @@ class _MultiTapRecognizeState extends State<MultiTapRecognize> {
         child: Stack(
           children: <Widget>[
             widget.child,
-            FittedBox(
-                child: SizedBox(
-                    width: queryData.size.width,
-                    height: queryData.size.height - appBarHeight,
-                    child: new Listener(
-                        onPointerMove: (PointerMoveEvent event) {
-                          setState(() {
-                            movableSelections[event.pointer] =
-                                transfromWithoutAppBar(
-                                    event.position, appBarHeight);
-                          });
-                        },
-                        onPointerUp: (PointerUpEvent event) {
-                          setState(() {
-                            movableSelections.remove(event.pointer);
-                          });
-                        },
-                        child: new CustomPaint(
-                          isComplex: true,
-                          painter: ConstraintPainter(
-                              points: movableSelections,
-                              queryData: queryData,
-                              context: context),
-                          willChange: true,
-                        ))))
+            Container(
+              constraints: const BoxConstraints.expand(),
+              child: MultiBlocListener(
+                  listeners: [
+                    BlocListener<DetectedTextBloc, DetectedTextState>(
+                      listener: (context, state) {},
+                    )
+                  ],
+                  child: new Listener(
+                      onPointerMove: (PointerMoveEvent event) {
+                        setState(() {
+                          movableSelections[event.pointer] =
+                              transformWithoutAppBar(
+                                  event.position, appBarHeight);
+                        });
+                      },
+                      onPointerUp: (PointerUpEvent event) {
+                        setState(() {
+                          movableSelections.remove(event.pointer);
+//                        #TODO  print(_detectedTextBloc.currentState);
+                        });
+                      },
+                      child: new CustomPaint(
+                        isComplex: true,
+                        painter: ConstraintPainter(
+                            points: movableSelections,
+                            queryData: queryData,
+                            imageSize: widget.size,
+                            context: context,
+                            onPaintRectangles: (List<Rect> rectangles) {
+                              rectSelections = rectangles
+                                  .asMap()
+                                  .map((index, rect) => MapEntry(index, rect));
+                            }),
+                        willChange: true,
+                      ))),
+            ),
           ],
         ));
   }
@@ -347,10 +391,19 @@ class DrawingPoints {
   DrawingPoints({this.points, this.paint});
 }
 
-class ConstraintPainter extends CustomPainter {
-  ConstraintPainter({this.points, this.queryData, this.context});
+typedef onPaintRectangleCallBack = void Function(List<Offset> points);
 
+class ConstraintPainter extends CustomPainter {
+  ConstraintPainter(
+      {this.points,
+      this.queryData,
+      this.context,
+      this.imageSize,
+      @required this.onPaintRectangles});
+
+  final onPaintRectangles;
   final MediaQueryData queryData;
+  final Size imageSize;
 
   Map<int, Offset> points;
 
@@ -361,37 +414,48 @@ class ConstraintPainter extends CustomPainter {
     ..strokeWidth = 2
     ..strokeCap = StrokeCap.butt;
 
-  final rectPainter = Paint()
-    ..color = Colors.amberAccent
+  final rectPainter = (BlendMode blend, Color col) => Paint()
+    ..color = col
     ..strokeWidth = 3
-    ..strokeCap = StrokeCap.square;
+    ..strokeCap = StrokeCap.square
+    ..blendMode = blend;
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (Offset point in points.values.toList()) {
+    List<Offset> pointsList = points.values.toList();
+    for (Offset point in pointsList) {
       canvas.drawLine(Offset(0, point.dy),
-          Offset(queryData.size.width * 2, point.dy), linePainter);
+          Offset(queryData.size.width, point.dy), linePainter);
       canvas.drawCircle(Offset(point.dx, point.dy), 20, linePainter);
     }
-    if (points.values.toList().length == 2) {
-      for (var i = 0; i <= points.values.toList().length - 1; i++) {
-        drawRects(i, points.values.toList(), canvas);
+    if (pointsList.length == 2) {
+      List<Rect> rectangles = [];
+      for (var i = 0; i <= pointsList.length - 1; i++) {
+        rectangles.add(drawRect(i, pointsList, canvas));
+//        print(rect);
       }
+      onPaintRectangles(rectangles);
     }
   }
 
-  drawRects(int pos, List<Offset> points, canvas) {
-    print({pos, points});
+  Rect drawRect(int pos, List<Offset> points, canvas) {
+    Rect right() => Rect.fromPoints(
+        Offset(points[pos - 1].dx, points[pos - 1].dy),
+        Offset(queryData.size.width, points[pos].dy));
+    Rect left() => Rect.fromPoints(Offset(0, points[pos].dy),
+        Offset(points[pos + 1].dx, points[pos + 1].dy));
+    if (pos > 0) {
+      var returnRect = right();
+      canvas.drawRect(
+          returnRect, rectPainter(BlendMode.hardLight, Colors.blueAccent));
+      return returnRect;
+    } else {
+      var returnRect = left();
 
-    pos > 0
-        ? canvas.drawRect(
-            Rect.fromPoints(Offset(points[pos - 1].dx, points[pos - 1].dy),
-                Offset(queryData.size.width * 2, points[pos].dy)),
-            rectPainter)
-        : canvas.drawRect(
-            Rect.fromPoints(Offset(0, points[pos].dy),
-                Offset(points[pos + 1].dx, points[pos + 1].dy)),
-            linePainter);
+      canvas.drawRect(
+          returnRect, rectPainter(BlendMode.softLight, Colors.yellowAccent));
+      return returnRect;
+    }
   }
 
   @override
@@ -423,7 +487,7 @@ class ItemDrag extends Drag {
 getChild<C>(BuildContext context) =>
     WrapperWidget.of(context).widget.child as C;
 
-Offset transfromWithoutAppBar(Offset offset, double appBarOffset) =>
+Offset transformWithoutAppBar(Offset offset, double appBarOffset) =>
     Offset(offset.dx, offset.dy - appBarOffset);
 //abstract class StateWithRef<U> {
 //  U of<U>(BuildContext context);

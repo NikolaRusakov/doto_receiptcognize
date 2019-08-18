@@ -1,8 +1,12 @@
+import 'package:bloc/bloc.dart';
+import 'package:doto_receiptcognize/lib/bloc/bloc/bloc.dart';
+import 'package:doto_receiptcognize/lib/bloc/bloc_delegate.dart';
 import 'package:doto_receiptcognize/lib/camera_preview_scanner.dart';
 import 'package:doto_receiptcognize/lib/material_barcode_scanner.dart';
 import 'package:doto_receiptcognize/lib/picture_scanner.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 AppBar appBar = AppBar(
   title: Text('Receiptgocnizer'),
@@ -11,17 +15,26 @@ AppBar appBar = AppBar(
 void main() {
 //  debugPrintGestureArenaDiagnostics = true;
   debugPrintGestureArenaDiagnostics = true;
+  BlocSupervisor.delegate = SimpleBlocDelegate();
   runApp(
-    MaterialApp(
-      routes: <String, WidgetBuilder>{
-        '/': (BuildContext context) => _ExampleList(),
-        '/$PictureScanner': (BuildContext context) => PictureScanner(),
-        '/$CameraPreviewScanner': (BuildContext context) =>
-            CameraPreviewScanner(),
-        '/$MaterialBarcodeScanner': (BuildContext context) =>
-            const MaterialBarcodeScanner(),
-      },
-    ),
+    MultiBlocProvider(
+        providers: [
+//          BlocProvider<AuthenticationBloc>(bloc: _authenticationBloc),
+          BlocProvider<DetectedTextBloc>(
+        builder: (BuildContext context) => DetectedTextBloc()),
+//          BlocProvider<GoogleLoginBloc>(
+//              bloc: _googleLoginBloc),
+        ],
+        child: MaterialApp(
+          routes: <String, WidgetBuilder>{
+            '/': (BuildContext context) => _ExampleList(),
+            '/$PictureScanner': (BuildContext context) => PictureScanner(),
+            '/$CameraPreviewScanner': (BuildContext context) =>
+                CameraPreviewScanner(),
+            '/$MaterialBarcodeScanner': (BuildContext context) =>
+                const MaterialBarcodeScanner(),
+          },
+        )),
   );
 }
 
@@ -40,26 +53,28 @@ class _ExampleListState extends State<_ExampleList> {
   @override
   Widget build(BuildContext context) {
     return WrapperWidget(
-      child: Scaffold(
-        appBar: appBar,
-        body: ListView.builder(
-          itemCount: _exampleWidgetNames.length,
-          itemBuilder: (BuildContext context, int index) {
-            final String widgetName = _exampleWidgetNames[index];
-
-            return Container(
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.grey)),
-              ),
-              child: ListTile(
-                title: Text(widgetName),
-                onTap: () => Navigator.pushNamed(context, '/$widgetName'),
-              ),
-            );
-          },
-        ),
+        child: Scaffold(
+      appBar: appBar,
+      body:
+          /*BlocProvider<DetectedTextBloc>(
+            builder: (context) => DetectedTextBloc(),
+            child: */
+          ListView.builder(
+        itemCount: _exampleWidgetNames.length,
+        itemBuilder: (BuildContext context, int index) {
+          final String widgetName = _exampleWidgetNames[index];
+          return Container(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.grey)),
+            ),
+            child: ListTile(
+              title: Text(widgetName),
+              onTap: () => Navigator.pushNamed(context, '/$widgetName'),
+            ),
+          );
+        },
       ),
-    );
+    ));
   }
 }
 
