@@ -128,7 +128,12 @@ class _PictureScannerState extends State<PictureScanner> {
     }
     setState(() {
       _scanResults = results;
-      _detectedTextBloc.dispatch(SaveDetectedText(text: _currentText));
+      final MediaQueryData screenSize = MediaQuery.of(context);
+      final double scaleX = screenSize.size.width / _imageSize.width;
+      final double scaleY = screenSize.size.height / _imageSize.height;
+      List<double> screen = [scaleX, scaleY];
+      _detectedTextBloc
+          .dispatch(SaveDetectedText(text: _currentText, screen: screen));
     });
   }
 
@@ -270,12 +275,13 @@ class MultiTapRecognize extends StatefulWidget {
 }
 
 class _MultiTapRecognizeState extends State<MultiTapRecognize> {
-  DetectedTextBloc _detectedTextBloc;
-
   final DelayedMultiDragGestureRecognizer dragGesture =
       new DelayedMultiDragGestureRecognizer();
   Map<int, Offset> movableSelections = {};
   Map<int, Rect> rectSelections = {};
+  VisionText _visionText;
+
+  DetectedTextBloc _detectedTextBloc;
 
   @override
   void initState() {
@@ -285,102 +291,105 @@ class _MultiTapRecognizeState extends State<MultiTapRecognize> {
 
   @override
   Widget build(BuildContext context) {
-    DetectedTextBloc _detectedTextBloc;
     final MediaQueryData queryData = MediaQuery.of(context);
 
     Scaffold child = getChild<Scaffold>(context);
     var appBarHeight = child.appBar.preferredSize.height;
 
     return RawGestureDetector(
-        gestures: <Type, GestureRecognizerFactory>{
-          MultiTapGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<MultiTapGestureRecognizer>(
-                  () => MultiTapGestureRecognizer(
-                      longTapDelay: Duration(seconds: 1)),
-                  (MultiTapGestureRecognizer instance) {
+      gestures: <Type, GestureRecognizerFactory>{
+        MultiTapGestureRecognizer: GestureRecognizerFactoryWithHandlers<
+                MultiTapGestureRecognizer>(
+            () => MultiTapGestureRecognizer(longTapDelay: Duration(seconds: 1)),
+            (MultiTapGestureRecognizer instance) {
+          instance
+            ..onTapDown = (int pointer, TapDownDetails details) {
+              print('trigger $pointer tap down');
+              dragGesture.acceptGesture(pointer);
+              setState(() {
+                movableSelections[pointer] = transformWithoutAppBar(
+                    details.globalPosition, appBarHeight);
+              });
+            }
+            ..onTapUp = (int pointer, TapUpDetails details) {
+              print('trigger $pointer tap up');
+            }
+            ..onLongTapDown = (int pointer, TapDownDetails details) {
+              print('trigger $pointer $details Long tap Down');
+            }
+            ..onTapCancel = (int pointer) {
+              print('trigger $pointer Long tap Cancel');
+            };
+        }),
+        DelayedMultiDragGestureRecognizer: GestureRecognizerFactoryWithHandlers<
+            DelayedMultiDragGestureRecognizer>(
+          () => DelayedMultiDragGestureRecognizer(),
+          (DelayedMultiDragGestureRecognizer instance) {
             instance
-              ..onTapDown = (int pointer, TapDownDetails details) {
-                print('trigger $pointer tap down');
-                dragGesture.acceptGesture(pointer);
-                setState(() {
-                  movableSelections[pointer] = transformWithoutAppBar(
-                      details.globalPosition, appBarHeight);
-                });
-              }
-              ..onTapUp = (int pointer, TapUpDetails details) {
-                print('trigger $pointer tap up');
-              }
-              ..onLongTapDown = (int pointer, TapDownDetails details) {
-                print('trigger $pointer $details Long tap Down');
-              }
-              ..onTapCancel = (int pointer) {
-                print('trigger $pointer Long tap Cancel');
-              };
-          }),
-          DelayedMultiDragGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<
-                  DelayedMultiDragGestureRecognizer>(
-            () => DelayedMultiDragGestureRecognizer(),
-            (DelayedMultiDragGestureRecognizer instance) {
-              instance
-                ..onStart = (Offset pointer) {
-                  print('trigger ${pointer.toString()} start draggin');
-                  final GestureDragUpdateCallback onUpdate =
-                      (DragUpdateDetails details) {};
+              ..onStart = (Offset pointer) {
+                print('trigger ${pointer.toString()} start draggin');
+                final GestureDragUpdateCallback onUpdate =
+                    (DragUpdateDetails details) {};
 
-                  final GestureDragEndCallback endDrag =
-                      (DragEndDetails details) {
-                    print('Drag End $details $pointer');
-                    print(movableSelections[pointer]);
-                  };
-
-                  return new ItemDrag(onUpdate, endDrag);
+                final GestureDragEndCallback endDrag =
+                    (DragEndDetails details) {
+                  print('Drag End $details $pointer');
+                  print(movableSelections[pointer]);
                 };
-            },
-          )
-        },
-        child: Stack(
-          children: <Widget>[
-            widget.child,
-            Container(
-              constraints: const BoxConstraints.expand(),
-              child: MultiBlocListener(
-                  listeners: [
-                    BlocListener<DetectedTextBloc, DetectedTextState>(
-                      listener: (context, state) {},
-                    )
-                  ],
-                  child: new Listener(
-                      onPointerMove: (PointerMoveEvent event) {
-                        setState(() {
-                          movableSelections[event.pointer] =
-                              transformWithoutAppBar(
-                                  event.position, appBarHeight);
-                        });
-                      },
-                      onPointerUp: (PointerUpEvent event) {
-                        setState(() {
-                          movableSelections.remove(event.pointer);
+
+                return new ItemDrag(onUpdate, endDrag);
+              };
+          },
+        )
+      },
+      child: Stack(children: <Widget>[
+        widget.child,
+        Container(
+            constraints: const BoxConstraints.expand(),
+            child: MultiBlocListener(
+                listeners: [
+                  BlocListener<DetectedTextBloc, DetectedTextState>(
+                    listener: (context, state) {
+                      print(state);
+//                      if(state is DetectedTextStateSuccess)
+//                      _visionText = state as VisionText;
+                    },
+                  )
+                ],
+                child: Listener(
+                    onPointerMove: (PointerMoveEvent event) {
+                      setState(() {
+                        movableSelections[event.pointer] =
+                            transformWithoutAppBar(
+                                event.position, appBarHeight);
+                      });
+                    },
+                    onPointerUp: (PointerUpEvent event) {
+                      setState(() {
+                        movableSelections.remove(event.pointer);
 //                        #TODO  print(_detectedTextBloc.currentState);
-                        });
-                      },
-                      child: new CustomPaint(
-                        isComplex: true,
-                        painter: ConstraintPainter(
-                            points: movableSelections,
-                            queryData: queryData,
-                            imageSize: widget.size,
-                            context: context,
-                            onPaintRectangles: (List<Rect> rectangles) {
-                              rectSelections = rectangles
-                                  .asMap()
-                                  .map((index, rect) => MapEntry(index, rect));
-                            }),
-                        willChange: true,
-                      ))),
-            ),
-          ],
-        ));
+                        print(_visionText);
+//                        _detectedTextBloc.dispatch(SaveDetectedText(text: _visionText));
+//                        _detectedTextBloc.dispatch(CheckForIntersection(
+//                            rectangle: rectSelections.values.toList()[1]),[]);
+                      });
+                    },
+                    child: new CustomPaint(
+                      isComplex: true,
+                      painter: ConstraintPainter(
+                          points: movableSelections,
+                          queryData: queryData,
+                          imageSize: widget.size,
+                          context: context,
+                          onPaintRectangles: (List<Rect> rectangles) {
+                            rectSelections = rectangles
+                                .asMap()
+                                .map((index, rect) => MapEntry(index, rect));
+                          }),
+                      willChange: true,
+                    )))),
+      ]),
+    );
   }
 }
 
