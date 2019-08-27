@@ -19,5 +19,15 @@ class DetectedTextSuccess extends DetectedTextState {
 
   @override
   String toString() =>
-      'DetectedTextStateSuccess { items: ${text.blocks.length} }';
+      'DetectedTextStateSuccess { text: ${text.blocks.length} }';
+}
+
+class IntersectedText extends DetectedTextState {
+  final List<TextBlock> text;
+
+  IntersectedText(this.text) : super([text]);
+
+  @override
+  String toString() =>
+      'IntersectedText { text: ${text.length} }';
 }
