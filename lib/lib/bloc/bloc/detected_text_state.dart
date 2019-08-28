@@ -1,3 +1,4 @@
+import 'package:doto_receiptcognize/lib/types/text.dart';
 import 'package:equatable/equatable.dart';
 import 'package:firebase_ml_vision/firebase_ml_vision.dart';
 import 'package:meta/meta.dart';
@@ -14,12 +15,14 @@ class DetectedTextStateEmpty extends DetectedTextState {
 
 class DetectedTextSuccess extends DetectedTextState {
   final VisionText text;
+  final List<Block> blockPositions;
 
-  DetectedTextSuccess(this.text) : super([text]);
+  DetectedTextSuccess(this.text, this.blockPositions)
+      : super([text, blockPositions]);
 
   @override
   String toString() =>
-      'DetectedTextStateSuccess { text: ${text.blocks.length} }';
+      'DetectedTextSuccess { text: ${text.blocks.length}, blockPositions ${text.blocks.length} }';
 }
 
 class IntersectedText extends DetectedTextState {
@@ -28,6 +31,5 @@ class IntersectedText extends DetectedTextState {
   IntersectedText(this.text) : super([text]);
 
   @override
-  String toString() =>
-      'IntersectedText { text: ${text.length} }';
+  String toString() => 'IntersectedText { text: ${text.length} }';
 }

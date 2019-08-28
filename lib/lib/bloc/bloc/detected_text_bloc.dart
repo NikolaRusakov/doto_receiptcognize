@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bloc/bloc.dart';
+import 'package:doto_receiptcognize/lib/types/text.dart';
 import 'package:doto_receiptcognize/lib/utils/utils.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -25,13 +26,15 @@ class DetectedTextBloc extends Bloc<DetectedTextEvent, DetectedTextState> {
     DetectedTextEvent event,
   ) async* {
     if (event is SaveDetectedText) {
-      adjustTextToLocal(event.text.blocks, event.screen);
-      yield DetectedTextSuccess(event.text);
+      List<Block> localBlocks =
+          adjustTextToLocal(event.text.blocks, event.screen);
+      yield DetectedTextSuccess(event.text, localBlocks);
     } else if (event is CheckForIntersection) {
       final listState = currentState;
       if (listState is DetectedTextSuccess) {
-//        var intersectedBlocks = checkForIntersection(
-//            listState.text, event.rectangle);
+        var intersectedBlocks = checkForIntersection(
+            listState.blockPositions, event.rectangle);
+
         yield IntersectedText(listState.text.blocks);
 //        yield IntersectedText(intersectedBlocks);
       }

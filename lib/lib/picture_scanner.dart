@@ -370,8 +370,8 @@ class _MultiTapRecognizeState extends State<MultiTapRecognize> {
 //                        #TODO  print(_detectedTextBloc.currentState);
                         print(_visionText);
 //                        _detectedTextBloc.dispatch(SaveDetectedText(text: _visionText));
-//                        _detectedTextBloc.dispatch(CheckForIntersection(
-//                            rectangle: rectSelections.values.toList()[1]),[]);
+                        _detectedTextBloc.dispatch(CheckForIntersection(
+                            rectangle: rectSelections.values.toList()[1]));
                       });
                     },
                     child: new CustomPaint(
