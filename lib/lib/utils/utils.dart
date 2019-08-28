@@ -3,10 +3,20 @@ import 'dart:ui';
 import 'package:doto_receiptcognize/lib/types/text.dart';
 import 'package:firebase_ml_vision/firebase_ml_vision.dart';
 
-List<TextBlock> checkForIntersection(VisionText text, Rect rectangle) {
-  var intersectedText = text.blocks
-      .where((item) => rectangle.contains(item.boundingBox.center) == true)
+List<Block> checkForIntersection(List<Block> blocks, Rect rectangle) {
+  var intersectedText = blocks
+      .map((block) => Block({
+            "text": block.text,
+            "boundingBox": block.boundingBox,
+            "lines": block.lines
+                .where((item) =>
+                    item.boundingBox.center != null &&
+                    rectangle.contains(item.boundingBox.center) == true)
+                .toList()
+          }))
+      .where(((block) => block.lines.length != 0))
       .toList();
+
   return intersectedText;
 }
 

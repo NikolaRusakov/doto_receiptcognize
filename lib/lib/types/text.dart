@@ -2,9 +2,12 @@ import 'dart:ui';
 
 class Block extends BaseElement {
   Block(Map<dynamic, dynamic> data)
-      : lines = List<Line>.unmodifiable(data['lines'].map<Line>(
-            (dynamic line) =>
-                Line({"elements": line.elements, "text": line.text}))),
+      : lines = List<Line>.unmodifiable(
+            data['lines'].map<Line>((dynamic line) => Line({
+                  "elements": line.elements,
+                  "text": line.text,
+                  "boundingBox": line.boundingBox,
+                }))),
         super(data);
   List<Line> lines;
 }
