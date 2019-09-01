@@ -8,17 +8,19 @@ List<Block> checkForIntersection(List<Block> blocks, Rect rectangle) {
       .map((block) => Block({
             "text": block.text,
             "boundingBox": block.boundingBox,
-            "lines": block.lines
-                .where((item) =>
-                    item.boundingBox.center != null &&
-                    rectangle.contains(item.boundingBox.center) == true)
-                .toList()
+            "lines": block.lines.where((line) =>
+                intersectsRect(rectangle, line.boundingBox)).toList()
           }))
-      .where(((block) => block.lines.length != 0))
+      .where(((block) => block.lines.length > 0))
       .toList();
 
   return intersectedText;
 }
+
+bool intersectsRect(Rect rectangle, Rect line) => ((rectangle.top < line.top) &&
+    ((rectangle.left < line.left) || (rectangle.left < line.right)) &&
+    (rectangle.right > line.right) &&
+    (rectangle.bottom > line.bottom));
 
 Rect adjustRect(TextContainer container, List<double> screenSize) {
   return Rect.fromLTRB(
@@ -57,3 +59,6 @@ Rect scaleRect(TextContainer container, List<double> screenSize) {
       container.boundingBox.right * screenSize[0],
       container.boundingBox.bottom * screenSize[1]);
 }
+
+double getAverage(List<Line> list) =>
+    (list.first.boundingBox.left + list.last.boundingBox.left) / 2;
