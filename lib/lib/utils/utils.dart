@@ -8,8 +8,9 @@ List<Block> checkForIntersection(List<Block> blocks, Rect rectangle) {
       .map((block) => Block({
             "text": block.text,
             "boundingBox": block.boundingBox,
-            "lines": block.lines.where((line) =>
-                intersectsRect(rectangle, line.boundingBox)).toList()
+            "lines": block.lines
+                .where((line) => intersectsRect(rectangle, line.boundingBox))
+                .toList()
           }))
       .where(((block) => block.lines.length > 0))
       .toList();
@@ -61,4 +62,45 @@ Rect scaleRect(TextContainer container, List<double> screenSize) {
 }
 
 double getAverage(List<Line> list) =>
-    (list.first.boundingBox.left + list.last.boundingBox.left) / 2;
+    (list.first.boundingBox.left + list.last.boundingBox.left) / 1.5;
+
+bool detectTopFirst(Map<String, List<LineRef>> segments) {
+  var leftDy = segments['left'].first.boundingBox.center.dy;
+  var right = segments['right'].first.boundingBox;
+  return leftDy < right.top;
+}
+
+List<LineRef> mergeSegments(Map<String, List<LineRef>> sortedSegments) {
+  var topFirst = detectTopFirst(sortedSegments);
+  var segments = topFirst
+      ? sortedSegments
+      : sortedSegments.map((k, v) => MapEntry(k, v.reversed.toList()));
+  //TODO optimize algorithm to make it work with normal use-cases
+  var mergedSegments = segments['right']
+      .fold({'stack': segments['left'], 'transformed': []}, (curr, next) {
+    var currStack = (curr['stack'] as List<LineRef>);
+    var stackSet = currStack
+//        .where((line) => line.boundingBox.top < next.boundingBox.center.dy)
+//        .where((line) => intersectsLine(line, next, topFirst))
+        .where((line) => topFirst
+            ? line.boundingBox.top < next.boundingBox.center.dy
+            : line.boundingBox.center.dy > next.boundingBox.top)
+        .toSet();
+    currStack.sublist(stackSet.length, currStack.length);
+    return {
+      'stack': currStack.sublist(stackSet.length, currStack.length),
+      'transformed': [
+        ...curr['transformed'],
+        {
+          next:
+              topFirst ? stackSet.toList() : stackSet.toList().reversed.toList()
+        }
+      ]
+    };
+  });
+
+  var merged = topFirst
+      ? mergedSegments
+      : mergedSegments.map((k, v) => MapEntry(k, v.reversed.toList()));
+  return merged['transformed'];
+}
