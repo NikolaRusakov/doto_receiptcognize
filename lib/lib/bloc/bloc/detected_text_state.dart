@@ -27,8 +27,9 @@ class DetectedTextSuccess extends DetectedTextState {
 
 class IntersectedText extends DetectedTextState {
   final List<TextBlock> text;
+  final List<LineRef> transformed;
 
-  IntersectedText(this.text) : super([text]);
+  IntersectedText(this.text, this.transformed) : super([text, transformed]);
 
   @override
   String toString() => 'IntersectedText { text: ${text.length} }';

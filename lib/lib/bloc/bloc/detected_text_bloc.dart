@@ -35,8 +35,12 @@ class DetectedTextBloc extends Bloc<DetectedTextEvent, DetectedTextState> {
         var intersectedBlocks =
             checkForIntersection(listState.blockPositions, event.rectangle);
 
-        List<Line> blocksByXaxis = intersectedBlocks
-            .map((block) => block.lines)
+        List<LineRef> blocksByXaxis = intersectedBlocks
+            .map((block) => block.lines.map((line) => LineRef({
+                  'elements': line.elements,
+                  'text': line.text,
+                  'boundingBox': line.boundingBox,
+                }, block)))
             .toList()
             .expand((lines) => lines)
             .toList();
@@ -44,17 +48,18 @@ class DetectedTextBloc extends Bloc<DetectedTextEvent, DetectedTextState> {
         blocksByXaxis
             .sort((a, b) => a.boundingBox.left.compareTo(b.boundingBox.left));
 
-        var sortedBlocksByXaxis = blocksByXaxis.fold<Map<String, List<Line>>>(
-            {"left": [], "right": []},
-            (c, line) => line.boundingBox.left < getAverage(blocksByXaxis)
-                ? {
-                    "left": [...c["left"], line],
-                    "right": [...c["right"]]
-                  }
-                : {
-                    "left": [...c["left"]],
-                    "right": [...c["right"], line]
-                  });
+        var sortedBlocksByXaxis =
+            blocksByXaxis.fold<Map<String, List<LineRef>>>(
+                {"left": [], "right": []},
+                (c, line) => line.boundingBox.left < getAverage(blocksByXaxis)
+                    ? {
+                        "left": [...c["left"], line],
+                        "right": [...c["right"]]
+                      }
+                    : {
+                        "left": [...c["left"]],
+                        "right": [...c["right"], line]
+                      });
 
         var sortedSegments = sortedBlocksByXaxis.map((key, list) {
           var sorted = list;
@@ -64,8 +69,8 @@ class DetectedTextBloc extends Bloc<DetectedTextEvent, DetectedTextState> {
         RegExp regEx = RegExp(r'\d');
         sortedSegments['right']
             .removeWhere((value) => regEx.hasMatch(value.text) == false);
-        print(sortedSegments['right']);
-        yield IntersectedText(listState.text.blocks);
+        var transformed = mergeSegments(sortedSegments);
+        yield IntersectedText(listState.text.blocks, transformed);
 //        yield IntersectedText(intersectedBlocks);
       }
     }
