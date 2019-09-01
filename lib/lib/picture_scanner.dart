@@ -371,7 +371,7 @@ class _MultiTapRecognizeState extends State<MultiTapRecognize> {
                         print(_visionText);
 //                        _detectedTextBloc.dispatch(SaveDetectedText(text: _visionText));
                         _detectedTextBloc.dispatch(CheckForIntersection(
-                            rectangle: rectSelections.values.toList()[1]));
+                            rectangle: rectSelections.values.toList()[0]));
                       });
                     },
                     child: new CustomPaint(
@@ -439,12 +439,20 @@ class ConstraintPainter extends CustomPainter {
     }
     if (pointsList.length == 2) {
       List<Rect> rectangles = [];
-      for (var i = 0; i <= pointsList.length - 1; i++) {
-        rectangles.add(drawRect(i, pointsList, canvas));
+//      for (var i = 0; i <= pointsList.length - 1; i++) {
+//        rectangles.add(drawRect(i, pointsList, canvas));
+        rectangles.add(drawDetectRect(pointsList, canvas));
 //        print(rect);
-      }
+//      }
       onPaintRectangles(rectangles);
     }
+  }
+
+  Rect drawDetectRect(List<Offset> points, canvas) {
+    Rect rectangle = Rect.fromPoints(points[0], points[1]);
+    canvas.drawRect(
+        rectangle, rectPainter(BlendMode.hardLight, Colors.blueAccent));
+    return rectangle;
   }
 
   Rect drawRect(int pos, List<Offset> points, canvas) {

@@ -32,9 +32,39 @@ class DetectedTextBloc extends Bloc<DetectedTextEvent, DetectedTextState> {
     } else if (event is CheckForIntersection) {
       final listState = currentState;
       if (listState is DetectedTextSuccess) {
-        var intersectedBlocks = checkForIntersection(
-            listState.blockPositions, event.rectangle);
+        var intersectedBlocks =
+            checkForIntersection(listState.blockPositions, event.rectangle);
 
+        List<Line> blocksByXaxis = intersectedBlocks
+            .map((block) => block.lines)
+            .toList()
+            .expand((lines) => lines)
+            .toList();
+
+        blocksByXaxis
+            .sort((a, b) => a.boundingBox.left.compareTo(b.boundingBox.left));
+
+        var sortedBlocksByXaxis = blocksByXaxis.fold<Map<String, List<Line>>>(
+            {"left": [], "right": []},
+            (c, line) => line.boundingBox.left < getAverage(blocksByXaxis)
+                ? {
+                    "left": [...c["left"], line],
+                    "right": [...c["right"]]
+                  }
+                : {
+                    "left": [...c["left"]],
+                    "right": [...c["right"], line]
+                  });
+
+        var sortedSegments = sortedBlocksByXaxis.map((key, list) {
+          var sorted = list;
+          sorted.sort((a, b) => a.boundingBox.top.compareTo(b.boundingBox.top));
+          return MapEntry(key, sorted);
+        });
+        RegExp regEx = RegExp(r'\d');
+        sortedSegments['right']
+            .removeWhere((value) => regEx.hasMatch(value.text) == false);
+        print(sortedSegments['right']);
         yield IntersectedText(listState.text.blocks);
 //        yield IntersectedText(intersectedBlocks);
       }
