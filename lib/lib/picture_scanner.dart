@@ -170,30 +170,33 @@ class _PictureScannerState extends State<PictureScanner> {
   Widget _buildImage({size: Size}) {
     return MultiTapRecognize(
         size: size,
-        child: Container(
-          constraints: const BoxConstraints.expand(),
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: Image.file(
-                _imageFile,
-                gaplessPlayback: true,
-                filterQuality: FilterQuality.high,
-              ).image,
-              fit: BoxFit.fitHeight,
+        child:Stack(
+            children: [
+        Container(
+            constraints: const BoxConstraints.expand(),
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: Image.file(
+                  _imageFile,
+                  gaplessPlayback: true,
+                  filterQuality: FilterQuality.high,
+                ).image,
+                fit: BoxFit.fitHeight,
+              ),
             ),
-          ),
-          child: _imageSize == null || _scanResults == null
-              ? const Center(
-                  child: Text(
-                    'Scanning...',
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontSize: 30.0,
-                    ),
-                  ),
-                )
-              : _buildResults(_imageSize, _scanResults),
-        ));
+            child:  _imageSize == null || _scanResults == null
+                    ? const Center(
+                        child: Text(
+                          'Scanning...',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontSize: 30.0,
+                          ),
+                        ),
+                      )
+                    : _buildResults(_imageSize, _scanResults),
+              )
+            ]));
   }
 
   @override
@@ -441,7 +444,7 @@ class ConstraintPainter extends CustomPainter {
       List<Rect> rectangles = [];
 //      for (var i = 0; i <= pointsList.length - 1; i++) {
 //        rectangles.add(drawRect(i, pointsList, canvas));
-        rectangles.add(drawDetectRect(pointsList, canvas));
+      rectangles.add(drawDetectRect(pointsList, canvas));
 //        print(rect);
 //      }
       onPaintRectangles(rectangles);

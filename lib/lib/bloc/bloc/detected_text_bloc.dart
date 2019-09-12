@@ -69,7 +69,8 @@ class DetectedTextBloc extends Bloc<DetectedTextEvent, DetectedTextState> {
         RegExp regEx = RegExp(r'\d');
         sortedSegments['right']
             .removeWhere((value) => regEx.hasMatch(value.text) == false);
-        var transformed = mergeSegments(sortedSegments);
+        List<Map<LineRef,List<LineRef>>> transformed = mergeSegments(sortedSegments);
+        print(transformed);
         yield IntersectedText(listState.text.blocks, transformed);
 //        yield IntersectedText(intersectedBlocks);
       }

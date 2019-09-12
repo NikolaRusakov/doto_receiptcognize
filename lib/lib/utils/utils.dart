@@ -70,7 +70,7 @@ bool detectTopFirst(Map<String, List<LineRef>> segments) {
   return leftDy < right.top;
 }
 
-List<LineRef> mergeSegments(Map<String, List<LineRef>> sortedSegments) {
+List<Map<LineRef,List<LineRef>>> mergeSegments(Map<String, List<LineRef>> sortedSegments) {
   var topFirst = detectTopFirst(sortedSegments);
   var segments = topFirst
       ? sortedSegments
@@ -100,7 +100,7 @@ List<LineRef> mergeSegments(Map<String, List<LineRef>> sortedSegments) {
   });
 
   var merged = topFirst
-      ? mergedSegments
-      : mergedSegments.map((k, v) => MapEntry(k, v.reversed.toList()));
-  return merged['transformed'];
+      ? mergedSegments.values.expand((lines) => lines).toList()
+      : mergedSegments.map((k, v) => MapEntry(k, v.reversed.toList())).values.expand((lines) => lines).toList();
+  return merged as List<Map<LineRef,List<LineRef>>>;
 }
