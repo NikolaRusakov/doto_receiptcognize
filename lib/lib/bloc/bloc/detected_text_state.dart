@@ -27,7 +27,7 @@ class DetectedTextSuccess extends DetectedTextState {
 
 class IntersectedText extends DetectedTextState {
   final List<TextBlock> text;
-  final List<LineRef> transformed;
+  final List<Map<LineRef, List<LineRef>>> transformed;
 
   IntersectedText(this.text, this.transformed) : super([text, transformed]);
 
