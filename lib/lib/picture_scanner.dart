@@ -75,7 +75,7 @@ class _PictureScannerState extends State<PictureScanner> {
 //    stream.addListener(ImageStreamListener(imageListener));
 //    stream.removeListener(ImageStreamListener(imageListener));
     image.image.resolve(const ImageConfiguration()).addListener(
-      ((ImageInfo info, bool _) {
+      ImageStreamListener((ImageInfo info, bool _) {
         completer.complete(Size(
           info.image.width.toDouble(),
           info.image.height.toDouble(),
@@ -509,14 +509,3 @@ getChild<C>(BuildContext context) =>
 
 Offset transformWithoutAppBar(Offset offset, double appBarOffset) =>
     Offset(offset.dx, offset.dy - appBarOffset);
-//abstract class StateWithRef<U> {
-//  U of<U>(BuildContext context);
-//}
-//
-//abstract class InheritedWithRef<U> {
-//  U data;
-//}
-//State getAppBarHeight<T extends StatefulWidget, U extends State<T>,
-//            I extends InheritedWithRef<U>, Inf>(StateWithRef<T, U> state,
-//    BuildContext context) =>
-//    state.of<I>(context).data;

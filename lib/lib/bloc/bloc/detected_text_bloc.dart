@@ -36,10 +36,13 @@ class DetectedTextBloc extends Bloc<DetectedTextEvent, DetectedTextState> {
             checkForIntersection(listState.blockPositions, event.rectangle);
 
         List<LineRef> blocksByXaxis = intersectedBlocks
-            .map((block) => block.lines.map((line) => LineRef({
-                  'elements': line.elements,
-                  'text': line.text,
-                  'boundingBox': line.boundingBox,
+            .map((block) => block.lines.map((line) =>
+              LineRef({
+                ...line.lineToMap
+//                ...line as Map<dynamic, dynamic>,
+//                  'elements': line.elements,
+//                  'text': line.text,
+//                  'boundingBox': line.boundingBox,
                 }, block)))
             .toList()
             .expand((lines) => lines)

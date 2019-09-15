@@ -16,8 +16,14 @@ class Block extends BaseElement {
                   'text': line.text,
                   'boundingBox': line.boundingBox,
                 }))),
+        _lineMap = data,
         super(data);
+
   List<Line> lines;
+
+  Map<dynamic, dynamic> _lineMap;
+
+  get lineToMap => Map.from(_lineMap);
 }
 
 class Line extends BaseElement {
@@ -25,17 +31,35 @@ class Line extends BaseElement {
       : elements = List<Element>.unmodifiable(data['elements'].map<Element>(
             (dynamic element) => Element(
                 {'boundingBox': element.boundingBox, 'text': element.text}))),
+        _lineMap = data,
         super(data);
+
+  Map<dynamic, dynamic> _lineMap;
+
   List<Element> elements;
+
+  get lineToMap => Map.from(_lineMap);
 }
 
 class Element extends BaseElement {
-  Element(Map<dynamic, dynamic> data) : super(data);
+  Element(Map<dynamic, dynamic> data)
+      : _lineMap = data,
+        super(data);
+
+  Map<dynamic, dynamic> _lineMap;
+
+  get lineToMap => Map.from(_lineMap);
 }
 
 class LineRef extends Line {
   LineRef(Map<dynamic, dynamic> data, Block ref)
       : ref = ref,
+        _lineMap = data,
         super(data);
+
   Block ref;
+
+  Map<dynamic, dynamic> _lineMap;
+
+  get lineToMap => Map.from(_lineMap);
 }
