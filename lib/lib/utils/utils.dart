@@ -70,7 +70,8 @@ bool detectTopFirst(Map<String, List<LineRef>> segments) {
   return leftDy < right.top;
 }
 
-List<Map<LineRef,List<LineRef>>> mergeSegments(Map<String, List<LineRef>> sortedSegments) {
+List<Map<LineRef, List<LineRef>>> mergeSegments(
+    Map<String, List<LineRef>> sortedSegments) {
   var topFirst = detectTopFirst(sortedSegments);
   var segments = topFirst
       ? sortedSegments
@@ -78,29 +79,33 @@ List<Map<LineRef,List<LineRef>>> mergeSegments(Map<String, List<LineRef>> sorted
   //TODO optimize algorithm to make it work with normal use-cases
   var mergedSegments = segments['right']
       .fold({'stack': segments['left'], 'transformed': []}, (curr, next) {
-    var currStack = (curr['stack'] as List<LineRef>);
-    var stackSet = currStack
+        var currStack = (curr['stack'] as List<LineRef>);
+        var stackSet = currStack
 //        .where((line) => line.boundingBox.top < next.boundingBox.center.dy)
 //        .where((line) => intersectsLine(line, next, topFirst))
-        .where((line) => topFirst
-            ? line.boundingBox.top < next.boundingBox.center.dy
-            : line.boundingBox.center.dy > next.boundingBox.top)
-        .toSet();
-    currStack.sublist(stackSet.length, currStack.length);
-    return {
-      'stack': currStack.sublist(stackSet.length, currStack.length),
-      'transformed': [
-        ...curr['transformed'],
-        {
-          next:
-              topFirst ? stackSet.toList() : stackSet.toList().reversed.toList()
-        }
-      ]
-    };
-  });
-
-  var merged = topFirst
-      ? mergedSegments.values.expand((lines) => lines).toList()
-      : mergedSegments.map((k, v) => MapEntry(k, v.reversed.toList())).values.expand((lines) => lines).toList();
-  return merged as List<Map<LineRef,List<LineRef>>>;
+            .where((line) => topFirst
+                ? line.boundingBox.top < next.boundingBox.center.dy
+                : line.boundingBox.center.dy > next.boundingBox.top)
+            .toSet();
+        currStack.sublist(stackSet.length, currStack.length);
+        return {
+          'stack': currStack.sublist(stackSet.length, currStack.length),
+          'transformed': [
+            ...curr['transformed'],
+            {
+              next: topFirst
+                  ? stackSet.toList()
+                  : stackSet.toList().reversed.toList()
+            }
+          ]
+        };
+      })
+      .entries
+      .firstWhere((entry) {
+        return entry.key.startsWith('transformed');
+      })
+      .value
+      .cast<Map<LineRef, List<LineRef>>>()
+      .toList();
+  return topFirst ? mergedSegments : mergedSegments.reversed.toList();
 }
