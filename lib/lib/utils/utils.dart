@@ -107,5 +107,6 @@ List<Map<LineRef, List<LineRef>>> mergeSegments(
       .value
       .cast<Map<LineRef, List<LineRef>>>()
       .toList();
+
   return topFirst ? mergedSegments : mergedSegments.reversed.toList();
 }

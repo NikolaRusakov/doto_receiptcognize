@@ -75,7 +75,6 @@ class DetectedTextBloc extends Bloc<DetectedTextEvent, DetectedTextState> {
         List<Map<LineRef,List<LineRef>>> transformed = mergeSegments(sortedSegments);
         print(transformed);
         yield IntersectedText(listState.text.blocks, transformed);
-//        yield IntersectedText(intersectedBlocks);
       }
     }
   }

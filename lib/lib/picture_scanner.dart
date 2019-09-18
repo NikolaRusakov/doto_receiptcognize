@@ -170,9 +170,8 @@ class _PictureScannerState extends State<PictureScanner> {
   Widget _buildImage({size: Size}) {
     return MultiTapRecognize(
         size: size,
-        child:Stack(
-            children: [
-        Container(
+        child: Stack(children: [
+          Container(
             constraints: const BoxConstraints.expand(),
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -184,19 +183,19 @@ class _PictureScannerState extends State<PictureScanner> {
                 fit: BoxFit.fitHeight,
               ),
             ),
-            child:  _imageSize == null || _scanResults == null
-                    ? const Center(
-                        child: Text(
-                          'Scanning...',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontSize: 30.0,
-                          ),
-                        ),
-                      )
-                    : _buildResults(_imageSize, _scanResults),
-              )
-            ]));
+            child: _imageSize == null || _scanResults == null
+                ? const Center(
+                    child: Text(
+                      'Scanning...',
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontSize: 30.0,
+                      ),
+                    ),
+                  )
+                : _buildResults(_imageSize, _scanResults),
+          )
+        ]));
   }
 
   @override
@@ -212,31 +211,31 @@ class _PictureScannerState extends State<PictureScanner> {
                 if (_imageFile != null) _scanImage(_imageFile);
               },
               itemBuilder: (BuildContext context) => <PopupMenuEntry<Detector>>[
-                    const PopupMenuItem<Detector>(
-                      child: Text('Detect Barcode'),
-                      value: Detector.barcode,
-                    ),
-                    const PopupMenuItem<Detector>(
-                      child: Text('Detect Face'),
-                      value: Detector.face,
-                    ),
-                    const PopupMenuItem<Detector>(
-                      child: Text('Detect Label'),
-                      value: Detector.label,
-                    ),
-                    const PopupMenuItem<Detector>(
-                      child: Text('Detect Cloud Label'),
-                      value: Detector.cloudLabel,
-                    ),
-                    const PopupMenuItem<Detector>(
-                      child: Text('Detect Text'),
-                      value: Detector.text,
-                    ),
-                    const PopupMenuItem<Detector>(
-                      child: Text('Detect Cloud Text'),
-                      value: Detector.cloudText,
-                    ),
-                  ],
+                const PopupMenuItem<Detector>(
+                  child: Text('Detect Barcode'),
+                  value: Detector.barcode,
+                ),
+                const PopupMenuItem<Detector>(
+                  child: Text('Detect Face'),
+                  value: Detector.face,
+                ),
+                const PopupMenuItem<Detector>(
+                  child: Text('Detect Label'),
+                  value: Detector.label,
+                ),
+                const PopupMenuItem<Detector>(
+                  child: Text('Detect Cloud Label'),
+                  value: Detector.cloudLabel,
+                ),
+                const PopupMenuItem<Detector>(
+                  child: Text('Detect Text'),
+                  value: Detector.text,
+                ),
+                const PopupMenuItem<Detector>(
+                  child: Text('Detect Cloud Text'),
+                  value: Detector.cloudText,
+                ),
+              ],
             ),
           ],
         ),
@@ -348,18 +347,53 @@ class _MultiTapRecognizeState extends State<MultiTapRecognize> {
       child: Stack(children: <Widget>[
         widget.child,
         Container(
-            constraints: const BoxConstraints.expand(),
-            child: MultiBlocListener(
-                listeners: [
-                  BlocListener<DetectedTextBloc, DetectedTextState>(
-                    listener: (context, state) {
-                      print(state);
+          constraints: const BoxConstraints.expand(),
+          child: MultiBlocListener(
+              listeners: [
+                BlocListener<DetectedTextBloc, DetectedTextState>(
+                  listener: (context, state) {
+                    print(state);
 //                      if(state is DetectedTextStateSuccess)
 //                      _visionText = state as VisionText;
-                    },
-                  )
-                ],
-                child: Listener(
+                  },
+                )
+              ],
+              child: BlocBuilder<DetectedTextBloc, DetectedTextState>(
+                  builder: (context, state) {
+                if (state is IntersectedText) {
+                  var text = state.transformed.map((e) {
+                    var texts = e.values
+                        .map((items) {
+                          return items
+                              .map((it) => Positioned(
+                                  top: it.boundingBox.top,
+                                  left: it.boundingBox.left,
+                                  child: Text(
+                                    it.text,
+                                    style: TextStyle(
+                                        background: Paint()
+                                          ..color = Colors.orange),
+                                  )))
+                              .toList();
+                        })
+                        .expand((pair) => pair)
+                        .toList();
+
+                    var priceTag = Positioned(
+                        top: e.keys.first.boundingBox.top,
+                        left: e.keys.first.boundingBox.left,
+                        child: Text(e.keys.first.text,
+                          style: TextStyle(
+                              background: Paint()
+                                ..color = Colors.orange),
+                        ));
+                    return [...texts, priceTag];
+                  }).toList();
+                  var flattened = text.expand((pair) => pair).toList();
+
+                  return Stack(children: <Widget>[...flattened]);
+                }
+                return Listener(
                     onPointerMove: (PointerMoveEvent event) {
                       setState(() {
                         movableSelections[event.pointer] =
@@ -390,7 +424,9 @@ class _MultiTapRecognizeState extends State<MultiTapRecognize> {
                                 .map((index, rect) => MapEntry(index, rect));
                           }),
                       willChange: true,
-                    )))),
+                    ));
+              })),
+        )
       ]),
     );
   }
