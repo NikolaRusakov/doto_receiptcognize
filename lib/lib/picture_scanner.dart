@@ -120,20 +120,20 @@ class _PictureScannerState extends State<PictureScanner> {
       default:
         return;
     }
-//    VisionText _currentText;
-//    _currentText = results;
-//    print(_currentText.blocks.asMap());
-//    for (var text in _currentText.blocks) {
-//      print("text : ${text.text}");
-//    }
+    VisionText _currentText;
+    _currentText = results;
+    print(_currentText.blocks.asMap());
+    for (var text in _currentText.blocks) {
+      print("text : ${text.text}");
+    }
     setState(() {
       _scanResults = results;
-//      final MediaQueryData screenSize = MediaQuery.of(context);
-//      final double scaleX = screenSize.size.width / _imageSize.width;
-//      final double scaleY = screenSize.size.height / _imageSize.height;
-//      List<double> screen = [scaleX, scaleY];
-//      _detectedTextBloc
-//          .dispatch(SaveDetectedText(text: _currentText, screen: screen));
+      final MediaQueryData screenSize = MediaQuery.of(context);
+      final double scaleX = screenSize.size.width / _imageSize.width;
+      final double scaleY = screenSize.size.height / _imageSize.height;
+      List<double> screen = [scaleX, scaleY];
+      _detectedTextBloc
+          .dispatch(SaveDetectedText(text: _currentText, screen: screen));
     });
   }
 
