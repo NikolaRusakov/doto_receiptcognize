@@ -28,6 +28,7 @@ class DetectedTextBloc extends Bloc<DetectedTextEvent, DetectedTextState> {
     if (event is SaveDetectedText) {
       List<Block> localBlocks =
           adjustTextToLocal(event.text.blocks, event.screen);
+      sortAndReturnExtremes(localBlocks);
       yield DetectedTextSuccess(event.text, localBlocks);
     } else if (event is CheckForIntersection) {
       final listState = currentState;
@@ -39,10 +40,6 @@ class DetectedTextBloc extends Bloc<DetectedTextEvent, DetectedTextState> {
             .map((block) => block.lines.map((line) =>
               LineRef({
                 ...line.lineToMap
-//                ...line as Map<dynamic, dynamic>,
-//                  'elements': line.elements,
-//                  'text': line.text,
-//                  'boundingBox': line.boundingBox,
                 }, block)))
             .toList()
             .expand((lines) => lines)
@@ -73,7 +70,6 @@ class DetectedTextBloc extends Bloc<DetectedTextEvent, DetectedTextState> {
         sortedSegments['right']
             .removeWhere((value) => regEx.hasMatch(value.text) == false);
         List<Map<LineRef,List<LineRef>>> transformed = mergeSegments(sortedSegments);
-        print(transformed);
         yield IntersectedText(listState.text.blocks, transformed);
       }
     }

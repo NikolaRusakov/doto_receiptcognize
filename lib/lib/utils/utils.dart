@@ -23,14 +23,6 @@ bool intersectsRect(Rect rectangle, Rect line) => ((rectangle.top < line.top) &&
     (rectangle.right > line.right) &&
     (rectangle.bottom > line.bottom));
 
-Rect adjustRect(TextContainer container, List<double> screenSize) {
-  return Rect.fromLTRB(
-      container.boundingBox.left * screenSize[0],
-      container.boundingBox.top * screenSize[1],
-      container.boundingBox.right * screenSize[0],
-      container.boundingBox.bottom * screenSize[1]);
-}
-
 List<Block> adjustTextToLocal(List<TextBlock> blocks, List<double> screen) {
   var bls = blocks
       .map((block) => Block({
@@ -109,4 +101,67 @@ List<Map<LineRef, List<LineRef>>> mergeSegments(
       .toList();
 
   return topFirst ? mergedSegments : mergedSegments.reversed.toList();
+}
+
+List<Block> sortAndReturnExtremes(List<Block> blocks) {
+  var sortedLeft = blocks;
+  sortedLeft.sort((a, b) => a.boundingBox.left.compareTo(b.boundingBox.left));
+  var sortedRight = blocks;
+  sortedRight
+      .sort((a, b) => a.boundingBox.right.compareTo(b.boundingBox.right));
+  var start = sortedLeft.first.boundingBox.left.floor();
+  var blocksMedian =
+      ((sortedRight.reversed.toList().first.boundingBox.right - start) / 2)
+          .floor();
+
+  var invertedBlocks = sortedLeft.reversed.toList();
+  var sortedBlocks = invertedBlocks
+      .fold<Map<String, List<Block>>>({'left': [], 'right': []}, (curr, next) {
+    return {
+      ...curr,
+      ...(vectorCenter(next, blocksMedian, start)
+          ? {
+              "right": [...curr["right"], next],
+            }
+          : {
+              "left": [...curr["left"], next],
+            })
+    };
+  })
+//          .cast<String, List<Block>>()
+
+      .map((k, v) {
+    var values = v;
+    values.sort((a, b) => a.boundingBox.top.compareTo(b.boundingBox.top));
+    return MapEntry(k, values);
+  });
+
+  return sortedBlocks['left'];
+}
+
+bool measureRightExtreme(Block block, int median) {
+  var center = (block.boundingBox.right - block.boundingBox.left) / 2;
+  return center >= median;
+}
+
+bool vectorCenter(Block blockA, int center, int start) {
+  if (center < blockA.boundingBox.left) {
+    return true;
+  }
+
+  if (center - blockA.boundingBox.left <
+      calculateWithStart(blockA, start) / 2) {
+    return true;
+  }
+  return false;
+}
+
+int calculateWithStart(Block block, int start) {
+  var blockRight = block.boundingBox.right;
+  if ((start - start * 0.1) < blockRight &&
+      blockRight < (start + start * 0.1)) {
+    return (blockRight / 2).floor();
+  } else {
+    return ((blockRight - block.boundingBox.left) / 2).floor();
+  }
 }

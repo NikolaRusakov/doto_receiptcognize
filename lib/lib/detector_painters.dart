@@ -154,6 +154,8 @@ class TextDetectorPainter extends CustomPainter {
 
         paint.color = Colors.yellow;
         canvas.drawRect(scaleRect(line), paint);
+        canvas.drawCircle(scaleRect(line).topLeft, 4, paint);
+
       }
 
       paint.color = Colors.red;
