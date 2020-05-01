@@ -35,6 +35,8 @@
 **/android/gradlew.bat
 **/android/local.properties
 **/android/**/GeneratedPluginRegistrant.java
+**/google-services.json
+.flutter-plugins-dependencies
 
 # iOS/XCode related
 **/ios/**/*.mode1v3
@@ -61,6 +63,7 @@
 **/ios/Flutter/flutter_assets/
 **/ios/ServiceDefinitions.json
 **/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/**/flutter_export_environment.sh
 
 # Exceptions to above rules.
 !**/ios/**/default.mode1v3
